@@ -78,7 +78,8 @@ class Wcms18_Year_Book {
 		$this->set_locale();
 		$this->define_admin_hooks();
 		$this->define_public_hooks();
-
+        $this->add_action_init();
+        $this->init_acf();
 	}
 
 	/**
@@ -120,7 +121,13 @@ class Wcms18_Year_Book {
 		 * The class responsible for defining all actions that occur in the public-facing
 		 * side of the site.
 		 */
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'public/class-wcms18-year-book-public.php';
+        require_once plugin_dir_path( dirname( __FILE__ ) ) . 'public/class-wcms18-year-book-public.php';
+
+         /**
+		 * includes acf plugin
+		 *
+		 */
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/acf/acf.php';
 
 		$this->loader = new Wcms18_Year_Book_Loader();
 
@@ -182,7 +189,176 @@ class Wcms18_Year_Book {
 	 */
 	public function run() {
 		$this->loader->run();
+    }
+
+    /**
+	 * initialize advanced custom fields plugin
+	 *
+	 *
+	 */
+	public function init_acf() {
+        //add filter for fixing ACF assets URL
+		add_filter('acf/settings/url', function(){
+            return plugin_dir_url(__FILE__) . 'acf/';
+        });
+        //register Field group matrix meta data
+        if( function_exists('acf_add_local_field_group') ):
+
+            acf_add_local_field_group(array(
+                'key' => 'group_5cfe40177110c',
+                'title' => 'matrix meta data',
+                'fields' => array(
+                    array(
+                        'key' => 'field_5cfe401f8d173',
+                        'label' => 'Attendance',
+                        'name' => 'attendance',
+                        'type' => 'number',
+                        'instructions' => 'Attendance in percent',
+                        'required' => 0,
+                        'conditional_logic' => 0,
+                        'wrapper' => array(
+                            'width' => '',
+                            'class' => '',
+                            'id' => '',
+                        ),
+                        'default_value' => '',
+                        'placeholder' => 'Attendance in percent',
+                        'prepend' => '',
+                        'append' => '%',
+                        'min' => 0,
+                        'max' => '',
+                        'step' => '',
+                    ),
+                    array(
+                        'key' => 'field_5cfe40628d174',
+                        'label' => 'Detention hours',
+                        'name' => 'detention_hours',
+                        'type' => 'number',
+                        'instructions' => 'number of hours spent in detention',
+                        'required' => 0,
+                        'conditional_logic' => 0,
+                        'wrapper' => array(
+                            'width' => '',
+                            'class' => '',
+                            'id' => '',
+                        ),
+                        'default_value' => '',
+                        'placeholder' => '',
+                        'prepend' => '',
+                        'append' => 'hours',
+                        'min' => 0,
+                        'max' => '',
+                        'step' => '',
+                    ),
+                ),
+                'location' => array(
+                    array(
+                        array(
+                            'param' => 'post_type',
+                            'operator' => '==',
+                            'value' => 'w18yb_student',
+                        ),
+                    ),
+                ),
+                'menu_order' => 0,
+                'position' => 'normal',
+                'style' => 'default',
+                'label_placement' => 'top',
+                'instruction_placement' => 'label',
+                'hide_on_screen' => '',
+                'active' => true,
+                'description' => '',
+            ));
+
+            endif;
+    }
+
+    	/**
+	 * Run the loader to execute all of the hooks with WordPress.
+	 *
+	 * @since    1.0.0
+	 */
+
+
+	public function register_cpts() {
+
+            /**
+             * Post Type: students.
+             */
+
+            $labels = array(
+                "name" => __( "students", "twentynineteen" ),
+                "singular_name" => __( "student", "twentynineteen" ),
+            );
+
+            $args = array(
+                "label" => __( "students", "twentynineteen" ),
+                "labels" => $labels,
+                "description" => "",
+                "public" => true,
+                "publicly_queryable" => true,
+                "show_ui" => true,
+                "delete_with_user" => false,
+                "show_in_rest" => true,
+                "rest_base" => "",
+                "rest_controller_class" => "WP_REST_Posts_Controller",
+                "has_archive" => true,
+                "show_in_menu" => true,
+                "show_in_nav_menus" => false,
+                "exclude_from_search" => false,
+                "capability_type" => "post",
+                "map_meta_cap" => true,
+                "hierarchical" => false,
+                "rewrite" => array( "slug" => "students", "with_front" => true ),
+                "query_var" => true,
+                "supports" => array( "title", "editor", "thumbnail", "excerpt" ),
+            );
+
+            register_post_type( "w18yb_student", $args );
+        }
+
+    public function register_cts() {
+
+            /**
+             * Taxonomy: course.
+             */
+
+            $labels = array(
+                "name" => __( "course", "twentynineteen" ),
+                "singular_name" => __( "courses", "twentynineteen" ),
+            );
+
+            $args = array(
+                "label" => __( "course", "twentynineteen" ),
+                "labels" => $labels,
+                "public" => true,
+                "publicly_queryable" => true,
+                "hierarchical" => false,
+                "show_ui" => true,
+                "show_in_menu" => true,
+                "show_in_nav_menus" => true,
+                "query_var" => true,
+                "rewrite" => array( 'slug' => 'courses', 'with_front' => true, ),
+                "show_admin_column" => false,
+                "show_in_rest" => true,
+                "rest_base" => "courses",
+                "rest_controller_class" => "WP_REST_Terms_Controller",
+                "show_in_quick_edit" => false,
+                );
+            register_taxonomy( "courses", array( "w18yb_student" ), $args );
+        }
+
+	/**
+	 * add actions to be run during init.
+	 *
+	 * @since    1.0.0
+	 */
+	public function add_action_init() {
+        add_action('init', [$this, 'register_cpts']);
+
+        add_action('init', [$this, 'register_cts']);
 	}
+
 
 	/**
 	 * The name of the plugin used to uniquely identify it within the context of
